@@ -201,9 +201,41 @@ $(document).ready(function() {
   };
 
   var replaceDialog = function(dialogIndex) {
-    console.log('replace dialog:' + dialogIndex);
+    var $fileInput = $('[data-index=' + dialogIndex + ']').find('input');
+    // A click should not be propagated as it would minimize the dialogs section
+    $fileInput.click(function (e) {
+      e.stopPropagation();
+    });
+    // Emulate click to upload file
+    $fileInput.click();
   };
 
+var updateDialogXML = function (dialogIndex) {
+    var dialog = dialogs[dialogIndex];
+    var $dLoading = $('[data-index=' + dialogIndex + ']').find('.dialog-loading');
+    var $dName = $('[data-index=' + dialogIndex + ']').find('.dialog-info');
+    $dLoading.show();
+    $dName.hide();
+
+    $.ajax({
+        type: 'PUT',
+        url: context + '/v1/dialogs/' + dialog.dialog_id,
+        data: new FormData($('[data-index=' + dialogIndex + ']').find('form')[0]),
+        processData: false,
+        contentType: false
+      })
+      .fail(function (response) {
+        var errorText = getErrorMessageFromResponse(response);
+        $dialogsError.show();
+        $dialogsError
+          .find('.errorMsg')
+          .html('Error creating the dialogs' + (errorText ? ': ' + errorText : '.'));
+      })
+      .always(function () {
+        $dLoading.hide();
+        $dName.show();
+      });
+  };
   var createDialog = function() {
     if ($('#name').val() === '' || $('#file').val() === '')
       return;
@@ -287,12 +319,17 @@ $(document).ready(function() {
         window.open(url, '_blank');
     });
 
-    // // replace
-    // $dialogTemplate.find('.replace').click(function(e){
-    //     e.stopPropagation();
-    //     $(this).blur();
-    //     replaceDialog(index);
-    // });
+    // replace
+    $dialogTemplate.find('.replace').click(function (e) {
+      e.stopPropagation();
+      $(this).blur();
+      replaceDialog(index);
+    });
+
+    var $fileInput = $dialogTemplate.find('input');
+    $fileInput.change(function () {
+      updateDialogXML(index);
+    })
 
     // delete
     $dialogTemplate.find('.delete').click(function(e){
